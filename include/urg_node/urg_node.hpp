@@ -124,6 +124,8 @@ private:
   int error_count_;
   int error_limit_;
   bool lockout_status_;
+  rclcpp::Duration system_latency_;
+  rclcpp::Duration user_latency_;
 
   double freq_min_;
   bool close_scan_;
@@ -156,6 +158,7 @@ private:
   std::string laser_frame_id_;
 
   volatile bool service_yield_;
+  volatile bool is_started_;
 
   /** how long between reading the sensor status */
   double status_update_delay_;

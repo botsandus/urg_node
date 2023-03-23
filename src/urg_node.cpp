@@ -50,6 +50,8 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   error_count_(0),
   error_limit_(4),
   lockout_status_(false),
+  system_latency_(std::chrono::seconds(0)),
+  user_latency_(std::chrono::seconds(0)),
   close_scan_(true),
   ip_address_(""),
   ip_port_(10940),
@@ -68,6 +70,7 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   default_user_latency_(0.0),
   laser_frame_id_("laser"),
   service_yield_(true),
+  is_started_(false),
   status_update_delay_(10.0)
 {
   (void) synchronize_time_;
@@ -146,7 +149,7 @@ bool UrgNode::updateStatus()
 {
   bool result = false;
   service_yield_ = true;
-  std::unique_lock<std::mutex> lock(lidar_mutex_);
+  std::scoped_lock<std::mutex> lock(lidar_mutex_);
 
   if (urg_) {
     device_status_ = urg_->getSensorStatus();
@@ -313,7 +316,7 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
 
 void UrgNode::calibrate_time_offset()
 {
-  std::unique_lock<std::mutex> lock(lidar_mutex_);
+  std::scoped_lock<std::mutex> lock(lidar_mutex_);
   if (!urg_) {
     RCLCPP_DEBUG(this->get_logger(), "Unable to calibrate time offset. Not Ready.");
     return;
@@ -326,6 +329,8 @@ void UrgNode::calibrate_time_offset()
     RCLCPP_INFO(
       this->get_logger(), "Calibration finished. Latency is: %.4f sec.",
       (double)(latency.nanoseconds() * 1e-9));
+    system_latency_ = urg_->getComputedLatency();
+    user_latency_ = urg_->getUserTimeOffset();
   } catch (const std::runtime_error & e) {
     RCLCPP_FATAL(this->get_logger(), "Could not calibrate time offset: %s", e.what());
     throw e;
@@ -335,22 +340,23 @@ void UrgNode::calibrate_time_offset()
 // Populate a diagnostics status message.
 void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-  if (!urg_) {
-    stat.summary(
-      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Not Connected");
-    return;
+  {
+    if (!urg_) {
+      stat.summary(
+        diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+        "Not Connected");
+      return;
+    }
   }
-
-  if (!urg_->getIPAddress().empty()) {
-    stat.add("IP Address", urg_->getIPAddress());
-    stat.add("IP Port", urg_->getIPPort());
+  if (!ip_address_.empty()) {
+    stat.add("IP Address", ip_address_);
+    stat.add("IP Port", ip_port_);
   } else {
-    stat.add("Serial Port", urg_->getSerialPort());
-    stat.add("Serial Baud", urg_->getSerialBaud());
+    stat.add("Serial Port", serial_port_);
+    stat.add("Serial Baud", serial_baud_);
   }
 
-  if (!urg_->isStarted()) {
+  if (!is_started_) {
     stat.summary(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "Not Connected: " + device_status_);
@@ -382,8 +388,8 @@ void UrgNode::populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrap
   stat.add("Firmware Date", firmware_date_);
   stat.add("Protocol Version", protocol_version_);
   stat.add("Device ID", device_id_);
-  stat.add("Computed Latency", urg_->getComputedLatency().nanoseconds());
-  stat.add("User Time Offset", urg_->getUserTimeOffset().nanoseconds());
+  stat.add("Computed Latency", system_latency_.nanoseconds());
+  stat.add("User Time Offset", user_latency_.nanoseconds());
 
   // Things not explicitly required by REP-0138, but still interesting.
   stat.add("Device Status", device_status_);
@@ -397,7 +403,7 @@ bool UrgNode::connect()
 {
   // Don't let external access to retrieve
   // status during the connection process.
-  std::unique_lock<std::mutex> lock(lidar_mutex_);
+  std::scoped_lock<std::mutex> lock(lidar_mutex_);
 
   try {
     urg_.reset();  // Clear any previous connections();
@@ -500,6 +506,7 @@ void UrgNode::scanThread()
       }
       device_status_ = urg_->getSensorStatus();
       urg_->start();
+      is_started_ = true;
       RCLCPP_INFO(this->get_logger(), "Streaming data.");
       // Clear the error count.
       error_count_ = 0;
@@ -515,11 +522,11 @@ void UrgNode::scanThread()
       continue;  // Return to top of main loop
     }
     rclcpp::Time last_status_update = this->now();
-
     while (!close_scan_) {
       // Don't allow external access during grabbing the scan.
       try {
-        std::unique_lock<std::mutex> lock(lidar_mutex_);
+        std::scoped_lock<std::mutex> lock(lidar_mutex_);
+        is_started_ = urg_->isStarted();
         if (publish_multiecho_) {
           sensor_msgs::msg::MultiEchoLaserScan msg;
           if (urg_->grabScan(msg)) {
@@ -558,10 +565,11 @@ void UrgNode::scanThread()
 
       // Reestablish connection if things seem to have gone wrong.
       if (error_count_ > error_limit_) {
+        // lock this as we need to reset the urg pointer
+        std::scoped_lock<std::mutex> lock(lidar_mutex_);
         RCLCPP_ERROR(this->get_logger(), "Error count exceeded limit, reconnecting.");
         urg_.reset();
         rclcpp::sleep_for(std::chrono::seconds(2));
-
         break;  // Return to top of main loop
       }
     }
