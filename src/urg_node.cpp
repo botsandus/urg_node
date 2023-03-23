@@ -50,7 +50,6 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   error_count_(0),
   error_limit_(4),
   lockout_status_(false),
-  close_diagnostics_(true),
   close_scan_(true),
   ip_address_(""),
   ip_port_(10940),
@@ -136,11 +135,7 @@ UrgNode::~UrgNode()
   if (run_thread_.joinable()) {
     run_thread_.join();
   }
-  if (diagnostics_thread_.joinable()) {
-    // Clean up our diagnostics thread.
-    close_diagnostics_ = true;
-    diagnostics_thread_.join();
-  }
+
   if (scan_thread_.joinable()) {
     close_scan_ = true;
     scan_thread_.join();
@@ -334,15 +329,6 @@ void UrgNode::calibrate_time_offset()
   } catch (const std::runtime_error & e) {
     RCLCPP_FATAL(this->get_logger(), "Could not calibrate time offset: %s", e.what());
     throw e;
-  }
-}
-
-// Diagnostics update task to be run in a thread.
-void UrgNode::updateDiagnostics()
-{
-  while (!close_diagnostics_) {
-    diagnostic_updater_.force_update();
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   }
 }
 
@@ -587,12 +573,6 @@ void UrgNode::run()
   // Setup initial connection
   connect();
 
-  // Stop diagnostics
-  if (!close_diagnostics_) {
-    close_diagnostics_ = true;
-    diagnostics_thread_.join();
-  }
-
   if (publish_multiecho_) {
     echoes_freq_.reset(
       new diagnostic_updater::HeaderlessTopicDiagnostic(
@@ -610,10 +590,6 @@ void UrgNode::run()
           &freq_min_, &freq_min_, diagnostics_tolerance_,
           diagnostics_window_time_)));
   }
-
-  //// Now that we are setup, kick off diagnostics.
-  close_diagnostics_ = false;
-  diagnostics_thread_ = std::thread(std::bind(&UrgNode::updateDiagnostics, this));
 
   // Start scanning now that everything is configured.
   close_scan_ = false;

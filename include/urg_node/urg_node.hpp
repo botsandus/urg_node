@@ -88,8 +88,6 @@ private:
 
   void calibrate_time_offset();
 
-  void updateDiagnostics();
-
   void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper & stat);
 
   void scanThread();
@@ -100,7 +98,6 @@ private:
     const std_srvs::srv::Trigger::Response::SharedPtr res);
 
   std::thread run_thread_;
-  std::thread diagnostics_thread_;
   std::thread scan_thread_;
 
   std::unique_ptr<urg_node::URGCWrapper> urg_;
@@ -129,7 +126,6 @@ private:
   bool lockout_status_;
 
   double freq_min_;
-  bool close_diagnostics_;
   bool close_scan_;
 
   std::string ip_address_;
