@@ -565,8 +565,6 @@ void UrgNode::scanThread()
 
       // Reestablish connection if things seem to have gone wrong.
       if (error_count_ > error_limit_) {
-        // lock this as we need to reset the urg pointer
-        std::scoped_lock<std::mutex> lock(lidar_mutex_);
         RCLCPP_ERROR(this->get_logger(), "Error count exceeded limit, reconnecting.");
         urg_.reset();
         rclcpp::sleep_for(std::chrono::seconds(2));
