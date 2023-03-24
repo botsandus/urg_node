@@ -149,7 +149,7 @@ bool UrgNode::updateStatus()
 {
   bool result = false;
   service_yield_ = true;
-  std::scoped_lock<std::mutex> lock(lidar_mutex_);
+  std::unique_lock<std::mutex> lock(lidar_mutex_);
 
   if (urg_) {
     device_status_ = urg_->getSensorStatus();
@@ -316,7 +316,7 @@ rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
 
 void UrgNode::calibrate_time_offset()
 {
-  std::scoped_lock<std::mutex> lock(lidar_mutex_);
+  std::unique_lock<std::mutex> lock(lidar_mutex_);
   if (!urg_) {
     RCLCPP_DEBUG(this->get_logger(), "Unable to calibrate time offset. Not Ready.");
     return;
@@ -403,7 +403,7 @@ bool UrgNode::connect()
 {
   // Don't let external access to retrieve
   // status during the connection process.
-  std::scoped_lock<std::mutex> lock(lidar_mutex_);
+  std::unique_lock<std::mutex> lock(lidar_mutex_);
 
   try {
     urg_.reset();  // Clear any previous connections();
@@ -525,7 +525,7 @@ void UrgNode::scanThread()
     while (!close_scan_) {
       // Don't allow external access during grabbing the scan.
       try {
-        std::scoped_lock<std::mutex> lock(lidar_mutex_);
+        std::unique_lock<std::mutex> lock(lidar_mutex_);
         is_started_ = urg_->isStarted();
         if (publish_multiecho_) {
           sensor_msgs::msg::MultiEchoLaserScan msg;
