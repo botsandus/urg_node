@@ -349,7 +349,7 @@ void UrgNode::calibrate_time_offset()
 // Diagnostics update task to be run in a thread.
 void UrgNode::updateDiagnostics()
 {
-  while (!close_diagnostics_) {
+  while (!close_diagnostics_ && rclcpp::ok()) {
     diagnostic_updater_.force_update();
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   }
@@ -495,7 +495,7 @@ bool UrgNode::connect()
 
 void UrgNode::scanThread()
 {
-  while (!close_scan_) {
+  while (!close_scan_ && rclcpp::ok()) {
     if (!urg_) {
       if (!connect()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -507,7 +507,7 @@ void UrgNode::scanThread()
       calibrate_time_offset();
     }
 
-    if (!urg_ || !rclcpp::ok()) {
+    if (!urg_) {
       continue;
     }
 
@@ -540,7 +540,7 @@ void UrgNode::scanThread()
     }
     rclcpp::Time last_status_update = this->now();
 
-    while (!close_scan_) {
+    while (!close_scan_ && rclcpp::ok()) {
       // Don't allow external access during grabbing the scan.
       try {
         std::unique_lock<std::mutex> lock(lidar_mutex_);
