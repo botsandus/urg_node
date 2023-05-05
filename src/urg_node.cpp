@@ -495,6 +495,7 @@ bool UrgNode::connect()
 
 void UrgNode::scanThread()
 {
+  rclcpp::Rate init_rate(10);
   while (!close_scan_ && rclcpp::ok()) {
     if (!urg_) {
       if (!connect()) {
@@ -539,7 +540,7 @@ void UrgNode::scanThread()
       continue;  // Return to top of main loop
     }
     rclcpp::Time last_status_update = this->now();
-
+    rclcpp::Rate scan_rate(freq_min_);
     while (!close_scan_ && rclcpp::ok()) {
       // Don't allow external access during grabbing the scan.
       try {
@@ -590,7 +591,9 @@ void UrgNode::scanThread()
         rclcpp::sleep_for(std::chrono::milliseconds(static_cast<uint64_t>(reconn_delay_ * 1000)));
         break;  // Return to top of main loop
       }
+      scan_rate.sleep();
     }
+    init_rate.sleep();
   }
 }
 
