@@ -542,6 +542,7 @@ void UrgNode::scanThread()
 
     while (!close_scan_) {
       // Don't allow external access during grabbing the scan.
+      RCLCPP_INFO(this->get_logger(), "Grabbing scan.");
       try {
         std::unique_lock<std::mutex> lock(lidar_mutex_);
         is_started_ = urg_->isStarted();

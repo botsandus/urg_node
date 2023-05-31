@@ -637,7 +637,7 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
   uint32_t arr_size = expected_read - 5;
   // Bounds check the size, we really shouldn't exceed 8703 bytes
   // based on the currently known messages on the hokuyo documentations
-  if (arr_size > 10000) {
+  if (1) {
     RCLCPP_ERROR(
       logger_, "Buffer creation bounds exceeded, shouldn't allocate: %" PRIu32 " bytes",
       arr_size);
