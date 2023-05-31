@@ -642,7 +642,7 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
       logger_, "Buffer creation bounds exceeded, shouldn't allocate: %" PRIu32 " bytes",
       arr_size);
 
-    char tempBuffer[1024]; // Temporary buffer to read and discard remaining bytes
+    char tempBuffer[101]; // Temporary buffer to read and discard remaining bytes
     while (recv(sock, tempBuffer, sizeof(tempBuffer), MSG_DONTWAIT) > 0) {
       RCLCPP_WARN(logger_, "Discarded %lu bytes", sizeof(tempBuffer));
     }
