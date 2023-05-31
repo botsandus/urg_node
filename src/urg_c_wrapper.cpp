@@ -631,7 +631,7 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
     result.clear();
     return result;
   }
-  RCLCPP_DEBUG(logger_, "Read len: %lu bytes", expected_read);
+  RCLCPP_INFO(logger_, "Read len: %lu bytes", expected_read);
 
   // Already read len of 5, take that out.
   uint32_t arr_size = expected_read - 5;
@@ -641,6 +641,12 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
     RCLCPP_ERROR(
       logger_, "Buffer creation bounds exceeded, shouldn't allocate: %" PRIu32 " bytes",
       arr_size);
+
+    char tempBuffer[1024]; // Temporary buffer to read and discard remaining bytes
+    while (recv(sock, tempBuffer, sizeof(tempBuffer), MSG_DONTWAIT) > 0) {
+      RCLCPP_WARN(logger_, "Discarded %lu bytes", sizeof(tempBuffer);
+    }
+
     result.clear();
     return result;
   }
