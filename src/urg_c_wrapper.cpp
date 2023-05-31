@@ -590,104 +590,43 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
 
   write(sock, cmd.c_str(), cmd.size());
 
-  // All serial command structures start with STX + LEN as
-  // the first 5 bytes, read those in.
+  // Determine the expected length you want to read
+  const ssize_t expected_length = 106; // Adjust this value to the desired length
+
+  // Create a buffer to store the data
+  std::vector<char> buffer(expected_length);
+
   ssize_t total_read_len = 0;
   ssize_t read_len = 0;
-  // Read in the header, make sure we get all 5 bytes expcted
-  char recvb[5] = {0};
-  ssize_t expected_read = 5;
-  while (total_read_len < expected_read) {
-    read_len = read(sock, recvb + total_read_len, expected_read - total_read_len);  // READ STX
-    if (read_len < 0) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        // Handle timeout
-        RCLCPP_ERROR(logger_, "SendCommand response header read failed: Read socket timeout");
-        result.clear();
-        return result;
-      } else {
-        // Handle other errors
-        RCLCPP_ERROR(logger_, "SendCommand response header read failed: Error Number %s", strerror(errno));
-        result.clear();
-        return result;
+
+  while (total_read_len < expected_length) {
+      read_len = read(sock, buffer.data() + total_read_len, expected_length - total_read_len);
+      if (read_len < 0) {
+          if (errno == EAGAIN || errno == EWOULDBLOCK) {
+              // Handle timeout
+              RCLCPP_ERROR(logger_, "Read socket timeout");
+              result.clear();
+              return result;
+          } else {
+              // Handle other errors
+              RCLCPP_ERROR(logger_, "Read failed: Error Number %s", strerror(errno));
+              result.clear();
+              return result;
+          }
+      } else if (read_len == 0) {
+          // Handle connection closed by the remote side
+          RCLCPP_ERROR(logger_, "Connection closed by the remote side");
+          result.clear();
+          return result;
       }
-    } else if (read_len == 0) {
-      // Handle connection closed by the remote side
-      RCLCPP_ERROR(logger_, "SendCommand response header read failed: Connection closed by the remote side");
-      result.clear();
-      return result;
-    }
-    total_read_len += read_len;
+      total_read_len += read_len;
   }
 
-  std::string recv_header(recvb, read_len);
-  // Convert the read len from hex chars to int.
-  std::stringstream ss;
-  ss << recv_header.substr(1, 4);
-  ss >> std::hex >> expected_read;
-  if (ss.fail()) {
-    // Handle conversion failure
-    RCLCPP_ERROR(logger_, "SendCommand failed to convert expected read length");
-    result.clear();
-    return result;
-  }
-  RCLCPP_INFO(logger_, "Read len: %lu bytes", expected_read);
-
-  // Already read len of 5, take that out.
-  uint32_t arr_size = expected_read - 5;
-  // Bounds check the size, we really shouldn't exceed 8703 bytes
-  // based on the currently known messages on the hokuyo documentations
-  if (1) {
-    RCLCPP_ERROR(
-      logger_, "Buffer creation bounds exceeded, shouldn't allocate: %" PRIu32 " bytes",
-      arr_size);
-
-    char tempBuffer[101]; // Temporary buffer to read and discard remaining bytes
-    while (recv(sock, tempBuffer, sizeof(tempBuffer), MSG_DONTWAIT) > 0) {
-      RCLCPP_WARN(logger_, "Discarded %lu bytes", sizeof(tempBuffer));
-    }
-
-    result.clear();
-    return result;
-  }
-
-  RCLCPP_DEBUG(logger_, "Creating buffer read of arr_Size: %" PRIu32 " bytes", arr_size);
-  // Create buffer space for read.
-  auto data = std::make_unique<char[]>(arr_size);
-
-  // Read the remaining command
-  total_read_len = 0;
-  read_len = 0;
-  expected_read = arr_size;
-
-  RCLCPP_DEBUG(logger_, "Expected body size: %lu bytes", expected_read);
-  while (total_read_len < expected_read) {
-    read_len = read(sock, data.get() + total_read_len, expected_read - total_read_len);
-    total_read_len += read_len;
-    RCLCPP_DEBUG(logger_, "Read in after header: %lu bytes", read_len);
-    if (read_len < 0) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        // Handle timeout
-        RCLCPP_ERROR(logger_, "SendCommand response header read failed: Read socket timeout");
-        result.clear();
-        return result;
-      } else {
-        // Handle other errors
-        RCLCPP_ERROR(logger_, "SendCommand response header read failed: Error Number %s", strerror(errno));
-        result.clear();
-        return result;
-      }
-    } else if (read_len == 0) {
-      // Handle connection closed by the remote side
-      RCLCPP_ERROR(logger_, "SendCommand response header read failed: Connection closed by the remote side");
-      result.clear();
-      return result;
-    }
-  }
+  // Convert the buffer to a string for further processing
+  std::string received_data(buffer.data(), expected_length);
 
   // Combine the read portions to return for processing.
-  result += recv_header;
-  result += std::string(data.get(), expected_read);
+  result += received_data;
 
   // Resume scan after sending.
   if (restart) {
