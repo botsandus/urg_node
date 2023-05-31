@@ -333,7 +333,7 @@ bool URGCWrapper::getXR00Status(URGStatus & status)
   str_cmd += 0x03;                 // ETX
 
   // Get the response
-  std::string response = sendCommand(str_cmd, false);
+  std::string response = sendCommand(str_cmd, false, XR00_PACKET_SIZE);
 
   if (response.empty() || response.size() < XR00_PACKET_SIZE) {
     RCLCPP_WARN(
@@ -433,7 +433,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport & report)
   str_cmd += 0x03;  // ETX
 
   // Get the response
-  std::string response = sendCommand(str_cmd, true);
+  std::string response = sendCommand(str_cmd, true, DL00_PACKET_SIZE);
 
   if (response.empty() || response.size() < DL00_PACKET_SIZE) {
     RCLCPP_WARN(
@@ -570,7 +570,9 @@ uint16_t URGCWrapper::checkCRC(const char * bytes, const uint32_t size)
   return crc_kermit_type.checksum();
 }
 
-std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
+std::string URGCWrapper::sendCommand(
+  const std::string & cmd, bool stop_scan,
+  const ssize_t & expected_packet_length)
 {
   std::string result;
   bool restart = false;
@@ -590,66 +592,40 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
 
   write(sock, cmd.c_str(), cmd.size());
 
-  // All serial command structures start with STX + LEN as
-  // the first 5 bytes, read those in.
+  // Create a buffer to store the data
+  std::vector<char> buffer(expected_packet_length);
+
   ssize_t total_read_len = 0;
   ssize_t read_len = 0;
-  // Read in the header, make sure we get all 5 bytes expcted
-  char recvb[5] = {0};
-  ssize_t expected_read = 5;
-  while (total_read_len < expected_read) {
-    read_len = read(sock, recvb + total_read_len, expected_read - total_read_len);  // READ STX
-    total_read_len += read_len;
-    if (read_len <= 0) {
-      RCLCPP_ERROR(logger_, "Read socket failed: %s", strerror(errno));
+
+  while (total_read_len < expected_packet_length) {
+    read_len = read(sock, buffer.data() + total_read_len, expected_packet_length - total_read_len);
+    if (read_len < 0) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        // Handle timeout
+        RCLCPP_ERROR(logger_, "Read socket timeout");
+        result.clear();
+        return result;
+      } else {
+        // Handle other errors
+        RCLCPP_ERROR(logger_, "Read failed: Error Number %s", strerror(errno));
+        result.clear();
+        return result;
+      }
+    } else if (read_len == 0) {
+      // Handle connection closed by the remote side
+      RCLCPP_ERROR(logger_, "Connection closed by the remote side");
       result.clear();
       return result;
     }
-  }
-
-  std::string recv_header(recvb, read_len);
-  // Convert the read len from hex chars to int.
-  std::stringstream ss;
-  ss << recv_header.substr(1, 4);
-  ss >> std::hex >> expected_read;
-  RCLCPP_DEBUG(logger_, "Read len: %lu bytes", expected_read);
-
-  // Already read len of 5, take that out.
-  uint32_t arr_size = expected_read - 5;
-  // Bounds check the size, we really shouldn't exceed 8703 bytes
-  // based on the currently known messages on the hokuyo documentations
-  if (arr_size > 10000) {
-    RCLCPP_ERROR(
-      logger_, "Buffer creation bounds exceeded, shouldn't allocate: %" PRIu32 " bytes",
-      arr_size);
-    result.clear();
-    return result;
-  }
-
-  RCLCPP_DEBUG(logger_, "Creating buffer read of arr_Size: %" PRIu32 " bytes", arr_size);
-  // Create buffer space for read.
-  auto data = std::make_unique<char[]>(arr_size);
-
-  // Read the remaining command
-  total_read_len = 0;
-  read_len = 0;
-  expected_read = arr_size;
-
-  RCLCPP_DEBUG(logger_, "Expected body size: %lu bytes", expected_read);
-  while (total_read_len < expected_read) {
-    read_len = read(sock, data.get() + total_read_len, expected_read - total_read_len);
     total_read_len += read_len;
-    RCLCPP_DEBUG(logger_, "Read in after header: %lu bytes", read_len);
-    if (read_len <= 0) {
-      RCLCPP_DEBUG(logger_, "Read socket failed: %s", strerror(errno));
-      result.clear();
-      return result;
-    }
   }
+
+  // Convert the buffer to a string for further processing
+  std::string received_data(buffer.data(), expected_packet_length);
 
   // Combine the read portions to return for processing.
-  result += recv_header;
-  result += std::string(data.get(), expected_read);
+  result += received_data;
 
   // Resume scan after sending.
   if (restart) {
