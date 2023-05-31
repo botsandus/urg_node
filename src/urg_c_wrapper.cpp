@@ -644,7 +644,7 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
 
     char tempBuffer[1024]; // Temporary buffer to read and discard remaining bytes
     while (recv(sock, tempBuffer, sizeof(tempBuffer), MSG_DONTWAIT) > 0) {
-      RCLCPP_WARN(logger_, "Discarded %lu bytes", sizeof(tempBuffer);
+      RCLCPP_WARN(logger_, "Discarded %lu bytes", sizeof(tempBuffer));
     }
 
     result.clear();
