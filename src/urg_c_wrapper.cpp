@@ -625,6 +625,12 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
   std::stringstream ss;
   ss << recv_header.substr(1, 4);
   ss >> std::hex >> expected_read;
+  if (ss.fail()) {
+    // Handle conversion failure
+    RCLCPP_ERROR(logger_, "SendCommand failed to convert expected read length");
+    result.clear();
+    return result;
+  }
   RCLCPP_DEBUG(logger_, "Read len: %lu bytes", expected_read);
 
   // Already read len of 5, take that out.
