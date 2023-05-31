@@ -333,7 +333,7 @@ bool URGCWrapper::getXR00Status(URGStatus & status)
   str_cmd += 0x03;                 // ETX
 
   // Get the response
-  std::string response = sendCommand(str_cmd, false);
+  std::string response = sendCommand(str_cmd, false, XR00_PACKET_SIZE);
 
   if (response.empty() || response.size() < XR00_PACKET_SIZE) {
     RCLCPP_WARN(
@@ -433,7 +433,7 @@ bool URGCWrapper::getDL00Status(UrgDetectionReport & report)
   str_cmd += 0x03;  // ETX
 
   // Get the response
-  std::string response = sendCommand(str_cmd, true);
+  std::string response = sendCommand(str_cmd, true, DL00_PACKET_SIZE);
 
   if (response.empty() || response.size() < DL00_PACKET_SIZE) {
     RCLCPP_WARN(
@@ -570,7 +570,7 @@ uint16_t URGCWrapper::checkCRC(const char * bytes, const uint32_t size)
   return crc_kermit_type.checksum();
 }
 
-std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
+std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan, const ssize_t &expected_packet_length)
 {
   std::string result;
   bool restart = false;
@@ -590,17 +590,14 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
 
   write(sock, cmd.c_str(), cmd.size());
 
-  // Determine the expected length you want to read
-  const ssize_t expected_length = 106; // Adjust this value to the desired length
-
   // Create a buffer to store the data
-  std::vector<char> buffer(expected_length);
+  std::vector<char> buffer(expected_packet_length);
 
   ssize_t total_read_len = 0;
   ssize_t read_len = 0;
 
-  while (total_read_len < expected_length) {
-      read_len = read(sock, buffer.data() + total_read_len, expected_length - total_read_len);
+  while (total_read_len < expected_packet_length) {
+      read_len = read(sock, buffer.data() + total_read_len, expected_packet_length - total_read_len);
       if (read_len < 0) {
           if (errno == EAGAIN || errno == EWOULDBLOCK) {
               // Handle timeout
@@ -623,7 +620,7 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
   }
 
   // Convert the buffer to a string for further processing
-  std::string received_data(buffer.data(), expected_length);
+  std::string received_data(buffer.data(), expected_packet_length);
 
   // Combine the read portions to return for processing.
   result += received_data;

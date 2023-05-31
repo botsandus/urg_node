@@ -226,7 +226,7 @@ private:
    * @param cmd The arbitrary command fully formatted to be sent as provided
    * @returns The textual response of the Lidar, empty if, but may return lidar's own error string.
    */
-  std::string sendCommand(const std::string & cmd, bool stop_scan);
+  std::string sendCommand(const std::string & cmd, bool stop_scan, ssize_t expected_packet_length);
 
   std::string ip_address_;
   int ip_port_;
