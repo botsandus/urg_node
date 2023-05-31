@@ -599,12 +599,25 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
   ssize_t expected_read = 5;
   while (total_read_len < expected_read) {
     read_len = read(sock, recvb + total_read_len, expected_read - total_read_len);  // READ STX
-    total_read_len += read_len;
-    if (read_len <= 0) {
-      RCLCPP_ERROR(logger_, "Read socket failed: %s", strerror(errno));
+    if (read_len < 0) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        // Handle timeout
+        RCLCPP_ERROR(logger_, "SendCommand response header read failed: Read socket timeout");
+        result.clear();
+        return result;
+      } else {
+        // Handle other errors
+        RCLCPP_ERROR(logger_, "SendCommand response header read failed: Error Number %s", strerror(errno));
+        result.clear();
+        return result;
+      }
+    } else if (read_len == 0) {
+      // Handle connection closed by the remote side
+      RCLCPP_ERROR(logger_, "SendCommand response header read failed: Connection closed by the remote side");
       result.clear();
       return result;
     }
+    total_read_len += read_len;
   }
 
   std::string recv_header(recvb, read_len);
@@ -640,8 +653,21 @@ std::string URGCWrapper::sendCommand(const std::string & cmd, bool stop_scan)
     read_len = read(sock, data.get() + total_read_len, expected_read - total_read_len);
     total_read_len += read_len;
     RCLCPP_DEBUG(logger_, "Read in after header: %lu bytes", read_len);
-    if (read_len <= 0) {
-      RCLCPP_DEBUG(logger_, "Read socket failed: %s", strerror(errno));
+    if (read_len < 0) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        // Handle timeout
+        RCLCPP_ERROR(logger_, "SendCommand response header read failed: Read socket timeout");
+        result.clear();
+        return result;
+      } else {
+        // Handle other errors
+        RCLCPP_ERROR(logger_, "SendCommand response header read failed: Error Number %s", strerror(errno));
+        result.clear();
+        return result;
+      }
+    } else if (read_len == 0) {
+      // Handle connection closed by the remote side
+      RCLCPP_ERROR(logger_, "SendCommand response header read failed: Connection closed by the remote side");
       result.clear();
       return result;
     }
