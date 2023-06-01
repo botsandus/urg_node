@@ -205,8 +205,15 @@ void URGCWrapper::stop()
 
 URGCWrapper::~URGCWrapper()
 {
-  stop();
-  urg_close(&urg_);
+  // TODO(richardw347): This is a bit exterme to always ensure the
+  // socket is closed on destruction. However this is necessary
+  // at the moment to ensure the sensor can alawys be restarted
+  // stop();
+  // urg_close(&urg_);
+  int sock = urg_.connection.tcpclient.sock_desc;
+  if (sock != -1) {
+    close(sock);
+  }
 }
 
 bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)
