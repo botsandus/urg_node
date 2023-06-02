@@ -356,13 +356,11 @@ bool URGCWrapper::getXR00Status(URGStatus & status)
   response.erase(response.size() - 1, 1);
 
   // Get the CRC, it's the last 4 chars.
-  std::stringstream ss;
-  ss << response.substr(response.size() - 4, 4);
-  uint16_t crc;
-  ss >> std::hex >> crc;
+  uint16_t crc = std::stoi(response.substr(response.size() - 4, 4), nullptr, 16);
 
   // Remove the CRC from the check.
   std::string msg = response.substr(0, response.size() - 4);
+
   // Check the checksum.
   uint16_t checksum_result = checkCRC(msg.data(), msg.size());
 
@@ -373,12 +371,15 @@ bool URGCWrapper::getXR00Status(URGStatus & status)
 
   // Debug output reponse up to scan data.
   RCLCPP_DEBUG(logger_, "Response: %s", response.substr(0, 41).c_str());
-  // Decode the result if crc checks out.
+  RCLCPP_DEBUG(logger_, "Operating mode: %s", response.substr(10, 1).c_str());
+  RCLCPP_DEBUG(logger_, "Area Number: %s", response.substr(11, 2).c_str());
+  RCLCPP_DEBUG(logger_, "Error status: %s", response.substr(13, 1).c_str());
+  RCLCPP_DEBUG(logger_, "Error code: %s", response.substr(14, 2).c_str());
+  RCLCPP_DEBUG(logger_, "Lockout: %s", response.substr(16, 1).c_str());
+  RCLCPP_DEBUG(logger_, "Contamination: %s", response.substr(60, 1).c_str());
+
   // Grab the status
-  ss.clear();
-  RCLCPP_DEBUG(logger_, "Status: %s", response.substr(8, 2).c_str());
-  ss << response.substr(8, 2);  // Status is 8th position 2 chars.
-  ss >> std::hex >> status.status;
+  status.status = std::stoi(response.substr(8, 2), nullptr, 16);
 
   if (status.status != 0) {
     RCLCPP_WARN(logger_, "Received bad status");
@@ -386,47 +387,26 @@ bool URGCWrapper::getXR00Status(URGStatus & status)
   }
 
   // Grab the operating mode
-  ss.clear();
-  RCLCPP_DEBUG(logger_, "Operating mode: %s", response.substr(10, 1).c_str());
-  ss << response.substr(10, 1);
-  ss >> std::hex >> status.operating_mode;
+  status.operating_mode = std::stoi(response.substr(10, 1), nullptr, 16);
 
   // Grab the area number
-  ss.clear();
-  ss << response.substr(11, 2);
-  RCLCPP_DEBUG(logger_, "Area Number: %s", response.substr(11, 2).c_str());
-  ss >> std::hex >> status.area_number;
+  status.area_number = std::stoi(response.substr(11, 2), nullptr, 16);
   // Per documentation add 1 to offset area number
   status.area_number++;
 
   // Grab the Error Status
-  ss.clear();
-  ss << response.substr(13, 1);
-  RCLCPP_DEBUG(logger_, "Error status: %s", response.substr(13, 1).c_str());
-  ss >> std::hex >> status.error_status;
-
-
+  status.error_status = std::stoi(response.substr(13, 1), nullptr, 16);
   // Grab the error code
-  ss.clear();
-  ss << response.substr(14, 2);
-  RCLCPP_DEBUG(logger_, "Error code: %s", response.substr(14, 2).c_str());
-  ss >> std::hex >> status.error_code;
-  // Offset by 0x40 is non-zero as per documentation
+  status.error_code = std::stoi(response.substr(14, 2), nullptr, 16);
+  // Per documentation add 1 to offset error code
   if (status.error_code != 0) {
     status.error_code += 0x40;
   }
 
   // Get the lockout status
-  ss.clear();
-  ss << response.substr(16, 1);
-  RCLCPP_DEBUG(logger_, "Lockout: %s", response.substr(16, 1).c_str());
-  ss >> std::hex >> status.lockout_status;
-
-  // Get the contamination status
-  ss.clear();
-  ss << response.substr(60, 1);
-  RCLCPP_DEBUG(logger_, "Contamination: %s", response.substr(60, 1).c_str());
-  ss >> std::hex >> status.contamination_warning;
+  status.lockout_status = std::stoi(response.substr(16, 1), nullptr, 16);
+  // Get the contamination warning
+  status.contamination_warning = std::stoi(response.substr(60, 1), nullptr, 16);
 
   return true;
 }
