@@ -210,6 +210,7 @@ URGCWrapper::~URGCWrapper()
   // at the moment to ensure the sensor can alawys be restarted
   // stop();
   // urg_close(&urg_);
+  RCLCPP_INFO(logger_, "URGCWrapper destructor called, closing socket");
   int sock = urg_.connection.tcpclient.sock_desc;
   if (sock != -1) {
     close(sock);
