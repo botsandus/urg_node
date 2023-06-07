@@ -49,6 +49,9 @@
 #include "urg_c/urg_sensor.h"
 #include "urg_c/urg_utils.h"
 
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+
 namespace urg_node
 {
 

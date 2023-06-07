@@ -72,6 +72,14 @@ URGCWrapper::URGCWrapper(
     throw std::runtime_error(ss.str());
   }
 
+  // Set TCP_NODELAY
+    int flag = 1;
+    int sock = urg_.connection.tcpclient.sock_desc;
+    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1) {
+        RCLCPP_ERROR(logger_, "Could not set TCP_NODELAY on socket: %s", strerror(errno));
+    }
+
+
   initialize(using_intensity, using_multiecho);
 }
 
