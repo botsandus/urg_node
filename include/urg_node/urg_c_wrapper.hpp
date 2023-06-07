@@ -117,7 +117,9 @@ public:
   URGCWrapper(
     const EthernetConnection & connection,
     bool & using_intensity, bool & using_multiecho,
-    const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
+    const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"),
+    bool tcp_nodelay = false,
+    const std::string& tcp_congestion_control = std::string(""));
 
   URGCWrapper(
     const SerialConnection & connection,

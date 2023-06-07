@@ -73,7 +73,9 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   laser_frame_id_("laser"),
   service_yield_(true),
   status_update_delay_(10.0),
-  reconn_delay_(0.5)
+  reconn_delay_(0.5),
+  tcp_nodelay_(false),
+  tcp_congestion_control_("")
 {
   (void) synchronize_time_;
   initSetup();
@@ -107,6 +109,8 @@ void UrgNode::initSetup()
   cluster_ = this->declare_parameter<int>("cluster", cluster_);
   status_update_delay_ = declare_parameter<double>("status_update_delay", status_update_delay_);
   reconn_delay_ = declare_parameter<double>("reconnect_delay", reconn_delay_);
+  tcp_nodelay_ = declare_parameter<bool>("tcp_nodelay", tcp_nodelay_);
+  tcp_congestion_control_ = declare_parameter<std::string>("tcp_congestion_control", tcp_congestion_control_);
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_) {
