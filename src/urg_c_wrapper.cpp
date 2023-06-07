@@ -80,7 +80,7 @@ URGCWrapper::URGCWrapper(
   if (tcp_nodelay)
   {
     int flag = 1;
-    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1) 
+    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
     {
         RCLCPP_ERROR(logger_, "Could not set TCP_NODELAY on socket: %s", strerror(errno));
     }
@@ -96,7 +96,7 @@ URGCWrapper::URGCWrapper(
   }
   else
   {
-    if (setsockopt(sock, IPPROTO_TCP, TCP_CONGESTION, tcp_congestion_control.c_str(), tcp_congestion_control.length() == -1)) 
+    if (setsockopt(sock, IPPROTO_TCP, TCP_CONGESTION, tcp_congestion_control.c_str(), tcp_congestion_control.length()) == -1)
     {
         RCLCPP_ERROR(logger_, "Could not set TCP_NODELAY on socket: %s", strerror(errno));
     }
