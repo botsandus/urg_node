@@ -79,6 +79,8 @@ URGCWrapper::URGCWrapper(
   }
 
   initialize(using_intensity, using_multiecho);
+
+  setSocketOptions();
 }
 
 URGCWrapper::URGCWrapper(
@@ -111,8 +113,6 @@ URGCWrapper::URGCWrapper(
   }
 
   initialize(using_intensity, using_multiecho);
-
-  setSocketOptions();
 }
 
 void URGCWrapper::initialize(bool & using_intensity, bool & using_multiecho)
