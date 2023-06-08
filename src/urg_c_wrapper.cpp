@@ -59,7 +59,10 @@ URGCWrapper::URGCWrapper(
   use_multiecho_(using_multiecho),
   system_latency_(std::chrono::seconds(0)),
   user_latency_(std::chrono::seconds(0)),
-  logger_(logger)
+  logger_(logger),
+  disable_linger_(disable_linger),
+  tcp_nodelay_(tcp_nodelay),
+  tcp_congestion_control_(tcp_congestion_control)
 {
   (void) adj_alpha_;
 
@@ -74,58 +77,6 @@ URGCWrapper::URGCWrapper(
     ss << urg_error(&urg_);
     throw std::runtime_error(ss.str());
   }
-
-  int sock = urg_.connection.tcpclient.sock_desc;
-
-  if (disable_linger)
-  {
-    // Disable SO_LINGER option
-    struct linger linger_opt;
-    linger_opt.l_onoff = 0;  // Disable SO_LINGER
-    linger_opt.l_linger = 0;  // Not used when l_onoff is 0
-
-    if (setsockopt(sock, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt)) == -1) 
-    {
-        RCLCPP_ERROR(logger_, "Could not set SO_LINGER off on socket: %s", strerror(errno));
-    }
-    else
-    {
-      RCLCPP_INFO(logger_, "Disabled SO_LINGER");
-    }
-  }
-
-
-  // Set TCP_NODELAY
-  if (tcp_nodelay)
-  {
-    int flag = 1;
-    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
-    {
-        RCLCPP_ERROR(logger_, "Could not set TCP_NODELAY on socket: %s", strerror(errno));
-    }
-    else
-    {
-      RCLCPP_INFO(logger_, "Set TCP_NODELAY");
-    }
-  }
-
-  if (tcp_congestion_control.empty())
-  {
-      RCLCPP_INFO(logger_, "Not setting TCP_CONGESTION");
-  }
-  else
-  {
-    if (setsockopt(sock, IPPROTO_TCP, TCP_CONGESTION, tcp_congestion_control.c_str(), tcp_congestion_control.length()) == -1)
-    {
-        RCLCPP_ERROR(logger_, "Could not set TCP_NODELAY on socket: %s", strerror(errno));
-    }
-    else
-    {
-        RCLCPP_INFO(logger_, "Set TCP_CONGESTION to %s", tcp_congestion_control.c_str());
-    }
-  }
-
-
 
   initialize(using_intensity, using_multiecho);
 }
@@ -160,6 +111,8 @@ URGCWrapper::URGCWrapper(
   }
 
   initialize(using_intensity, using_multiecho);
+
+  setSocketOptions();
 }
 
 void URGCWrapper::initialize(bool & using_intensity, bool & using_multiecho)
@@ -262,6 +215,59 @@ URGCWrapper::~URGCWrapper()
 {
   stop();
   urg_close(&urg_);
+}
+
+void URGCWrapper::setSocketOptions()
+{
+  int sock = urg_.connection.tcpclient.sock_desc;
+
+  if (disable_linger_)
+  {
+    // Disable SO_LINGER option
+    struct linger linger_opt;
+    linger_opt.l_onoff = 0;  // Disable SO_LINGER
+    linger_opt.l_linger = 0;  // Not used when l_onoff is 0
+
+    if (setsockopt(sock, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt)) == -1)
+    {
+        RCLCPP_ERROR(logger_, "Could not set SO_LINGER off on socket: %s", strerror(errno));
+    }
+    else
+    {
+      RCLCPP_INFO(logger_, "Disabled SO_LINGER");
+    }
+  }
+
+
+  // Set TCP_NODELAY
+  if (tcp_nodelay_)
+  {
+    int flag = 1;
+    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
+    {
+        RCLCPP_ERROR(logger_, "Could not set TCP_NODELAY on socket: %s", strerror(errno));
+    }
+    else
+    {
+      RCLCPP_INFO(logger_, "Set TCP_NODELAY");
+    }
+  }
+
+  if (tcp_congestion_control_.empty())
+  {
+      RCLCPP_INFO(logger_, "Not setting TCP_CONGESTION");
+  }
+  else
+  {
+    if (setsockopt(sock, IPPROTO_TCP, TCP_CONGESTION, tcp_congestion_control.c_str(), tcp_congestion_control.length()) == -1)
+    {
+        RCLCPP_ERROR(logger_, "Could not set TCP_NODELAY on socket: %s", strerror(errno));
+    }
+    else
+    {
+        RCLCPP_INFO(logger_, "Set TCP_CONGESTION to %s", tcp_congestion_control.c_str());
+    }
+  }
 }
 
 bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)

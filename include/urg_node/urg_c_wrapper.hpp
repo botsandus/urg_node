@@ -199,6 +199,8 @@ public:
 
   bool getDL00Status(UrgDetectionReport & report);
 
+  void setSocketOptions();
+
 private:
   void initialize(bool & using_intensity, bool & using_multiecho);
 
@@ -269,6 +271,10 @@ private:
 
   /// Logger object used for debug info
   rclcpp::Logger logger_;
+
+  bool disable_linger_;
+  bool tcp_nodelay_;
+  std::string tcp_congestion_control_;
 };
 }  // namespace urg_node
 
