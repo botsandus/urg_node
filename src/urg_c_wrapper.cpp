@@ -265,7 +265,7 @@ void URGCWrapper::setSocketOptions()
     }
     else
     {
-        RCLCPP_INFO(logger_, "Set TCP_CONGESTION to %s", tcp_congestion_control.c_str());
+        RCLCPP_INFO(logger_, "Set TCP_CONGESTION to %s", tcp_congestion_control_.c_str());
     }
   }
 }
