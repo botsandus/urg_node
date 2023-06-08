@@ -74,9 +74,7 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   service_yield_(true),
   status_update_delay_(10.0),
   reconn_delay_(0.5),
-  disable_linger_(false),
-  tcp_nodelay_(false),
-  tcp_congestion_control_("")
+  disable_linger_(false)
 {
   (void) synchronize_time_;
   initSetup();
@@ -111,8 +109,6 @@ void UrgNode::initSetup()
   status_update_delay_ = declare_parameter<double>("status_update_delay", status_update_delay_);
   reconn_delay_ = declare_parameter<double>("reconnect_delay", reconn_delay_);
   disable_linger_ = declare_parameter<bool>("disable_linger", disable_linger_);
-  tcp_nodelay_ = declare_parameter<bool>("tcp_nodelay", tcp_nodelay_);
-  tcp_congestion_control_ = declare_parameter<std::string>("tcp_congestion_control", tcp_congestion_control_);
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_) {

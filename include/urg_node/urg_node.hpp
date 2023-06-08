@@ -170,8 +170,6 @@ private:
   double reconn_delay_;
 
   bool disable_linger_;
-  bool tcp_nodelay_;
-  std::string tcp_congestion_control_;
 
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub_;
   std::unique_ptr<laser_proc::LaserPublisher> echoes_pub_;

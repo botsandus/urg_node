@@ -271,10 +271,8 @@ private:
 
   /// Logger object used for debug info
   rclcpp::Logger logger_;
-
   bool disable_linger_;
-  bool tcp_nodelay_;
-  std::string tcp_congestion_control_;
+
 };
 }  // namespace urg_node
 
