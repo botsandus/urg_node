@@ -259,7 +259,7 @@ void URGCWrapper::setSocketOptions()
   }
   else
   {
-    if (setsockopt(sock, IPPROTO_TCP, TCP_CONGESTION, tcp_congestion_control.c_str(), tcp_congestion_control.length()) == -1)
+    if (setsockopt(sock, IPPROTO_TCP, TCP_CONGESTION, tcp_congestion_control_.c_str(), tcp_congestion_control_.length()) == -1)
     {
         RCLCPP_ERROR(logger_, "Could not set TCP_NODELAY on socket: %s", strerror(errno));
     }
