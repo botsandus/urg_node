@@ -53,7 +53,6 @@
 #include "urg_c/urg_utils.h"
 
 
-
 namespace urg_node
 {
 
