@@ -432,7 +432,7 @@ bool UrgNode::connect()
         new urg_node::URGCWrapper(
           connection,
           publish_intensity_, publish_multiecho_, this->get_logger(),
-          disable_linger_, tcp_nodelay_, tcp_congestion_control_));
+          disable_linger_);
     } else {
       SerialConnection connection{serial_port_, serial_baud_};
       urg_.reset(

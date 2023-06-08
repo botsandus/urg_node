@@ -118,9 +118,7 @@ public:
     const EthernetConnection & connection,
     bool & using_intensity, bool & using_multiecho,
     const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"),
-    bool disable_linger = false,
-    bool tcp_nodelay = false,
-    const std::string& tcp_congestion_control = std::string(""));
+    bool disable_linger = false);
 
   URGCWrapper(
     const SerialConnection & connection,
@@ -198,8 +196,6 @@ public:
   bool getXR00Status(URGStatus & status);
 
   bool getDL00Status(UrgDetectionReport & report);
-
-  void setSocketOptions();
 
 private:
   void initialize(bool & using_intensity, bool & using_multiecho);

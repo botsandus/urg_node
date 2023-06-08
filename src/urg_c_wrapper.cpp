@@ -48,9 +48,7 @@ namespace urg_node
 URGCWrapper::URGCWrapper(
   const EthernetConnection & connection, bool & using_intensity,
   bool & using_multiecho, const rclcpp::Logger & logger,
-  bool disable_linger,
-  bool tcp_nodelay,
-  const std::string& tcp_congestion_control)
+  bool disable_linger)
   : ip_address_(connection.ip_address),
   ip_port_(connection.ip_port),
   serial_port_(""),
@@ -78,7 +76,6 @@ URGCWrapper::URGCWrapper(
 
   initialize(using_intensity, using_multiecho);
 
-  setSocketOptions();
 }
 
 URGCWrapper::URGCWrapper(
