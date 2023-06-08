@@ -169,6 +169,7 @@ private:
   /** how long to wait to reconnect **/
   double reconn_delay_;
 
+  bool disable_linger_;
   bool tcp_nodelay_;
   std::string tcp_congestion_control_;
 

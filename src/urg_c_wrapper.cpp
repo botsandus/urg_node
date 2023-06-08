@@ -48,6 +48,7 @@ namespace urg_node
 URGCWrapper::URGCWrapper(
   const EthernetConnection & connection, bool & using_intensity,
   bool & using_multiecho, const rclcpp::Logger & logger,
+  bool disable_linger,
   bool tcp_nodelay,
   const std::string& tcp_congestion_control)
   : ip_address_(connection.ip_address),
@@ -75,6 +76,24 @@ URGCWrapper::URGCWrapper(
   }
 
   int sock = urg_.connection.tcpclient.sock_desc;
+
+  if (disable_linger)
+  {
+    // Disable SO_LINGER option
+    struct linger linger_opt;
+    linger_opt.l_onoff = 0;  // Disable SO_LINGER
+    linger_opt.l_linger = 0;  // Not used when l_onoff is 0
+
+    if (setsockopt(sock, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt)) == -1) 
+    {
+        RCLCPP_ERROR(logger_, "Could not set SO_LINGER off on socket: %s", strerror(errno));
+    }
+    else
+    {
+      RCLCPP_INFO(logger_, "Disabled SO_LINGER");
+    }
+  }
+
 
   // Set TCP_NODELAY
   if (tcp_nodelay)

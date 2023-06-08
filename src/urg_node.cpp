@@ -74,6 +74,7 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   service_yield_(true),
   status_update_delay_(10.0),
   reconn_delay_(0.5),
+  disable_linger_(false),
   tcp_nodelay_(false),
   tcp_congestion_control_("")
 {
@@ -109,6 +110,7 @@ void UrgNode::initSetup()
   cluster_ = this->declare_parameter<int>("cluster", cluster_);
   status_update_delay_ = declare_parameter<double>("status_update_delay", status_update_delay_);
   reconn_delay_ = declare_parameter<double>("reconnect_delay", reconn_delay_);
+  disable_linger_ = declare_parameter<bool>("disable_linger", disable_linger_);
   tcp_nodelay_ = declare_parameter<bool>("tcp_nodelay", tcp_nodelay_);
   tcp_congestion_control_ = declare_parameter<std::string>("tcp_congestion_control", tcp_congestion_control_);
 
@@ -433,7 +435,8 @@ bool UrgNode::connect()
       urg_.reset(
         new urg_node::URGCWrapper(
           connection,
-          publish_intensity_, publish_multiecho_, this->get_logger()));
+          publish_intensity_, publish_multiecho_, this->get_logger(),
+          disable_linger_, tcp_nodelay_, tcp_congestion_control_));
     } else {
       SerialConnection connection{serial_port_, serial_baud_};
       urg_.reset(
