@@ -34,12 +34,15 @@
 #ifndef URG_NODE__URG_C_WRAPPER_HPP_
 #define URG_NODE__URG_C_WRAPPER_HPP_
 
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <chrono>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -49,8 +52,7 @@
 #include "urg_c/urg_sensor.h"
 #include "urg_c/urg_utils.h"
 
-#include <netinet/in.h>
-#include <netinet/tcp.h>
+
 
 namespace urg_node
 {
@@ -268,7 +270,6 @@ private:
   /// Logger object used for debug info
   rclcpp::Logger logger_;
   bool disable_linger_;
-
 };
 }  // namespace urg_node
 

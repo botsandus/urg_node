@@ -75,7 +75,6 @@ URGCWrapper::URGCWrapper(
   }
 
   initialize(using_intensity, using_multiecho);
-
 }
 
 URGCWrapper::URGCWrapper(
@@ -224,7 +223,7 @@ URGCWrapper::~URGCWrapper()
       RCLCPP_INFO(logger_, "Disabled SO_LINGER");
     }
   }
-  //urg_close(&urg_);
+  // urg_close(&urg_);
   close(urg_.connection.tcpclient.sock_desc);
 }
 
