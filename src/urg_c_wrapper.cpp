@@ -58,7 +58,7 @@ URGCWrapper::URGCWrapper(
   system_latency_(std::chrono::seconds(0)),
   user_latency_(std::chrono::seconds(0)),
   logger_(logger),
-  disable_linger_(disable_linger),
+  disable_linger_(disable_linger)
 {
   (void) adj_alpha_;
 
