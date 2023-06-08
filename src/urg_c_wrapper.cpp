@@ -213,59 +213,56 @@ void URGCWrapper::stop()
 
 URGCWrapper::~URGCWrapper()
 {
-  stop();
-  urg_close(&urg_);
-}
-
-void URGCWrapper::setSocketOptions()
-{
-  int sock = urg_.connection.tcpclient.sock_desc;
-
+  // stop();
   if (disable_linger_)
   {
     // Disable SO_LINGER option
     struct linger linger_opt;
-    linger_opt.l_onoff = 0;  // Disable SO_LINGER
+    linger_opt.l_onoff = 1;  // Disable SO_LINGER
     linger_opt.l_linger = 0;  // Not used when l_onoff is 0
 
-    if (setsockopt(sock, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt)) == -1)
-    {
+    if (setsockopt(urg_.connection.tcpclient.sock_desc, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt)) == -1) {
         RCLCPP_ERROR(logger_, "Could not set SO_LINGER off on socket: %s", strerror(errno));
     }
-    else
-    {
+    else {
       RCLCPP_INFO(logger_, "Disabled SO_LINGER");
     }
   }
+  //urg_close(&urg_);
+  close(urg_.connection.tcpclient.sock_desc);
+}
 
+void URGCWrapper::setSocketOptions()
+{
 
   // Set TCP_NODELAY
   if (tcp_nodelay_)
   {
     int flag = 1;
-    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
-    {
+    if (setsockopt(urg_.connection.tcpclient.sock_desc, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1) {
         RCLCPP_ERROR(logger_, "Could not set TCP_NODELAY on socket: %s", strerror(errno));
     }
-    else
-    {
+    else {
       RCLCPP_INFO(logger_, "Set TCP_NODELAY");
     }
+  }
+  else {
+     RCLCPP_INFO(logger_, "Not setting TCP_NODELAY");
   }
 
   if (tcp_congestion_control_.empty())
   {
-      RCLCPP_INFO(logger_, "Not setting TCP_CONGESTION");
+    RCLCPP_INFO(logger_, "Not setting TCP_CONGESTION");
   }
-  else
-  {
-    if (setsockopt(sock, IPPROTO_TCP, TCP_CONGESTION, tcp_congestion_control_.c_str(), tcp_congestion_control_.length()) == -1)
-    {
-        RCLCPP_ERROR(logger_, "Could not set TCP_NODELAY on socket: %s", strerror(errno));
+  else {
+    char buf[256];
+    strcpy(buf, tcp_congestion_control_.c_str());
+    socklen_t len = strlen(buf);
+    if (setsockopt(urg_.connection.tcpclient.sock_desc, IPPROTO_TCP, TCP_CONGESTION, buf, len) == -1) {
+      RCLCPP_ERROR(logger_, "Could not set socket congestion to %s on socket: %s", tcp_congestion_control_.c_str(), strerror(errno));
     }
-    else
-    {
-        RCLCPP_INFO(logger_, "Set TCP_CONGESTION to %s", tcp_congestion_control_.c_str());
+    else {
+      RCLCPP_INFO(logger_, "Set TCP_CONGESTION to %s", tcp_congestion_control_.c_str());
     }
   }
 }
