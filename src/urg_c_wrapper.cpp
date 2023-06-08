@@ -49,7 +49,7 @@ URGCWrapper::URGCWrapper(
   const EthernetConnection & connection, bool & using_intensity,
   bool & using_multiecho, const rclcpp::Logger & logger,
   bool disable_linger)
-  : ip_address_(connection.ip_address),
+: ip_address_(connection.ip_address),
   ip_port_(connection.ip_port),
   serial_port_(""),
   serial_baud_(0),
@@ -209,17 +209,18 @@ void URGCWrapper::stop()
 URGCWrapper::~URGCWrapper()
 {
   // stop();
-  if (disable_linger_)
-  {
+  if (disable_linger_) {
     // Disable SO_LINGER option
     struct linger linger_opt;
     linger_opt.l_onoff = 1;  // Disable SO_LINGER
     linger_opt.l_linger = 0;  // Not used when l_onoff is 0
 
-    if (setsockopt(urg_.connection.tcpclient.sock_desc, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt)) == -1) {
-        RCLCPP_ERROR(logger_, "Could not set SO_LINGER off on socket: %s", strerror(errno));
-    }
-    else {
+    if (setsockopt(
+        urg_.connection.tcpclient.sock_desc, SOL_SOCKET, SO_LINGER, &linger_opt,
+        sizeof(linger_opt)) == -1)
+    {
+      RCLCPP_ERROR(logger_, "Could not set SO_LINGER off on socket: %s", strerror(errno));
+    } else {
       RCLCPP_INFO(logger_, "Disabled SO_LINGER");
     }
   }
