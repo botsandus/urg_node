@@ -576,7 +576,7 @@ void UrgNode::scanThread()
 
       if (this->now() - last_status_update > rclcpp::Duration::from_seconds(status_update_delay_)) {
         if (!this->updateStatus()) {
-          error_count_++;
+          error_count_ = error_limit_ + 1;
         }
         last_status_update = this->now();
       }
