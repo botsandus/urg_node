@@ -34,6 +34,8 @@
 #ifndef URG_NODE__URG_C_WRAPPER_HPP_
 #define URG_NODE__URG_C_WRAPPER_HPP_
 
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <chrono>
 #include <limits>
 #include <sstream>
@@ -49,8 +51,7 @@
 #include "urg_c/urg_sensor.h"
 #include "urg_c/urg_utils.h"
 
-#include <netinet/in.h>
-#include <netinet/tcp.h>
+
 
 namespace urg_node
 {
@@ -230,7 +231,9 @@ private:
    * @param cmd The arbitrary command fully formatted to be sent as provided
    * @returns The textual response of the Lidar, empty if, but may return lidar's own error string.
    */
-  std::string sendCommand(const std::string & cmd, bool stop_scan, const ssize_t &expected_packet_length);
+  std::string sendCommand(
+    const std::string & cmd, bool stop_scan,
+    const ssize_t & expected_packet_length);
 
   std::string ip_address_;
   int ip_port_;
@@ -268,7 +271,6 @@ private:
   /// Logger object used for debug info
   rclcpp::Logger logger_;
   bool disable_linger_;
-
 };
 }  // namespace urg_node
 
