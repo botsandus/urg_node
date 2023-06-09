@@ -296,6 +296,7 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
   msg.range_min = getRangeMin();
   msg.range_max = getRangeMax();
 
+
   // Grab scan
   int num_beams = 0;
   long time_stamp = 0;                   // NOLINT
