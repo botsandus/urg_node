@@ -308,6 +308,8 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::MultiEchoLaserScan & msg)
     num_beams = urg_get_multiecho(&urg_, &data_[0], &time_stamp, &system_time_stamp);
   }
   if (num_beams <= 0) {
+    std::string error(urg_error(&urg_));
+    RCLCPP_ERROR(logger_, "Error while getting scan: %s", error.c_str());
     return false;
   }
 
