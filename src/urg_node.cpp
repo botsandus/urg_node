@@ -564,8 +564,10 @@ void UrgNode::scanThread()
             laser_pub_->publish(msg);
             laser_freq_->tick();
           } else {
-            RCLCPP_WARN(this->get_logger(), "Could not grab single echo scan.");
             device_status_ = urg_->getSensorStatus();
+            RCLCPP_INFO(this->get_logger(), "Stream stopped due to error, restarting");
+            urg_->start();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             error_count_++;
           }
         }
