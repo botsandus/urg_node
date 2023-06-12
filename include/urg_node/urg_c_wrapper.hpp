@@ -34,6 +34,8 @@
 #ifndef URG_NODE__URG_C_WRAPPER_HPP_
 #define URG_NODE__URG_C_WRAPPER_HPP_
 
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <chrono>
 #include <limits>
 #include <sstream>
@@ -41,11 +43,13 @@
 #include <string>
 #include <vector>
 
+
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
 #include "urg_c/urg_sensor.h"
 #include "urg_c/urg_utils.h"
+
 
 namespace urg_node
 {
@@ -110,8 +114,10 @@ class URGCWrapper
 {
 public:
   URGCWrapper(
-    const EthernetConnection & connection, bool & using_intensity, bool & using_multiecho,
-    const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"));
+    const EthernetConnection & connection,
+    bool & using_intensity, bool & using_multiecho,
+    const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"),
+    bool disable_linger = false);
 
   URGCWrapper(
     const SerialConnection & connection, bool & using_intensity, bool & using_multiecho,
@@ -260,6 +266,7 @@ private:
 
   /// Logger object used for debug info
   rclcpp::Logger logger_;
+  bool disable_linger_;
 };
 }  // namespace urg_node
 

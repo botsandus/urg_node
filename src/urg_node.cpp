@@ -73,7 +73,8 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   laser_frame_id_("laser"),
   service_yield_(true),
   status_update_delay_(10.0),
-  reconn_delay_(0.5)
+  reconn_delay_(0.5),
+  disable_linger_(false)
 {
   (void) synchronize_time_;
   initSetup();
@@ -107,6 +108,7 @@ void UrgNode::initSetup()
   cluster_ = this->declare_parameter<int>("cluster", cluster_);
   status_update_delay_ = declare_parameter<double>("status_update_delay", status_update_delay_);
   reconn_delay_ = declare_parameter<double>("reconnect_delay", reconn_delay_);
+  disable_linger_ = declare_parameter<bool>("disable_linger", disable_linger_);
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_) {
@@ -429,7 +431,8 @@ bool UrgNode::connect()
       urg_.reset(
         new urg_node::URGCWrapper(
           connection,
-          publish_intensity_, publish_multiecho_, this->get_logger()));
+          publish_intensity_, publish_multiecho_, this->get_logger(),
+          disable_linger_));
     } else {
       SerialConnection connection{serial_port_, serial_baud_};
       urg_.reset(

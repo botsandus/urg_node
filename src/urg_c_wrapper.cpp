@@ -47,7 +47,8 @@ namespace urg_node
 
 URGCWrapper::URGCWrapper(
   const EthernetConnection & connection, bool & using_intensity,
-  bool & using_multiecho, const rclcpp::Logger & logger)
+  bool & using_multiecho, const rclcpp::Logger & logger,
+  bool disable_linger)
 : ip_address_(connection.ip_address),
   ip_port_(connection.ip_port),
   serial_port_(""),
@@ -56,7 +57,8 @@ URGCWrapper::URGCWrapper(
   use_multiecho_(using_multiecho),
   system_latency_(std::chrono::seconds(0)),
   user_latency_(std::chrono::seconds(0)),
-  logger_(logger)
+  logger_(logger),
+  disable_linger_(disable_linger)
 {
   (void) adj_alpha_;
 
@@ -205,6 +207,22 @@ void URGCWrapper::stop()
 
 URGCWrapper::~URGCWrapper()
 {
+  // stop();
+  if (disable_linger_) {
+    // Disable SO_LINGER option
+    struct linger linger_opt;
+    linger_opt.l_onoff = 1;  // Disable SO_LINGER
+    linger_opt.l_linger = 0;  // Not used when l_onoff is 0
+
+    if (setsockopt(
+        urg_.connection.tcpclient.sock_desc, SOL_SOCKET, SO_LINGER, &linger_opt,
+        sizeof(linger_opt)) == -1)
+    {
+      RCLCPP_ERROR(logger_, "Could not set SO_LINGER off on socket: %s", strerror(errno));
+    } else {
+      RCLCPP_INFO(logger_, "Disabled SO_LINGER");
+    }
+  }
   // TODO(richardw347): This is a bit exterme to always ensure the
   // socket is closed on destruction. However this is necessary
   // at the moment to ensure the sensor can alawys be restarted
