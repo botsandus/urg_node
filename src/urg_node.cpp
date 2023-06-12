@@ -548,6 +548,7 @@ void UrgNode::scanThread()
       try {
         std::unique_lock<std::mutex> lock(lidar_mutex_);
         is_started_ = urg_->isStarted();
+        RCLCPP_INFO(this->get_logger(), "is_started: %d", is_started_.load());
         if (publish_multiecho_) {
           sensor_msgs::msg::MultiEchoLaserScan msg;
           if (urg_->grabScan(msg)) {
@@ -564,8 +565,10 @@ void UrgNode::scanThread()
             laser_pub_->publish(msg);
             laser_freq_->tick();
           } else {
-            RCLCPP_WARN(this->get_logger(), "Could not grab single echo scan.");
             device_status_ = urg_->getSensorStatus();
+            RCLCPP_INFO(this->get_logger(), "Stream stopped due to error, restarting");
+            urg_->start();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             error_count_++;
           }
         }

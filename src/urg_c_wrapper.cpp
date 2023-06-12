@@ -260,7 +260,8 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)
   }
   if (num_beams <= 0) {
     std::string error(urg_error(&urg_));
-    RCLCPP_ERROR(logger_, "Error getting scan: %s", error.c_str());
+    RCLCPP_WARN(logger_, "Error grabbing scan: %s streaming data stopped", error.c_str());
+    started_ = false;
     return false;
   }
 
