@@ -548,7 +548,6 @@ void UrgNode::scanThread()
       try {
         std::unique_lock<std::mutex> lock(lidar_mutex_);
         is_started_ = urg_->isStarted();
-        RCLCPP_INFO(this->get_logger(), "is_started: %d", is_started_.load());
         if (publish_multiecho_) {
           sensor_msgs::msg::MultiEchoLaserScan msg;
           if (urg_->grabScan(msg)) {
