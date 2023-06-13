@@ -558,6 +558,7 @@ void UrgNode::scanThread()
           if (urg_->grabScan(msg)) {
             echoes_pub_->publish(msg);
             echoes_freq_->tick();
+            error_count_ = 0;
           } else {
             RCLCPP_WARN(this->get_logger(), "Could not grab multi echo scan.");
             device_status_ = urg_->getSensorStatus();
@@ -568,6 +569,7 @@ void UrgNode::scanThread()
           if (urg_->grabScan(msg)) {
             laser_pub_->publish(msg);
             laser_freq_->tick();
+            error_count_ = 0;
           } else {
             device_status_ = urg_->getSensorStatus();
             RCLCPP_INFO(this->get_logger(), "Stream stopped due to error, restarting");
