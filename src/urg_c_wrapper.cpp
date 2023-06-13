@@ -60,21 +60,7 @@ URGCWrapper::URGCWrapper(
   logger_(logger),
   disable_linger_(disable_linger)
 {
-  (void) adj_alpha_;
-
-  long baudrate_or_port = (long)ip_port_;  // NOLINT
-  const char * device = ip_address_.c_str();
-
-  int result = urg_open(&urg_, URG_ETHERNET, device, baudrate_or_port);
-  if (result < 0) {
-    std::stringstream ss;
-    ss << "Could not open network Hokuyo:\n";
-    ss << ip_address_ << ":" << ip_port_ << "\n";
-    ss << urg_error(&urg_);
-    throw std::runtime_error(ss.str());
-  }
-
-  initialize(using_intensity, using_multiecho);
+  RCLCPP_INFO(logger_, "Created Ethernet URGCWrapper at %s:%d", ip_address_.c_str(), ip_port_);
 }
 
 URGCWrapper::URGCWrapper(
@@ -90,23 +76,31 @@ URGCWrapper::URGCWrapper(
   user_latency_(std::chrono::seconds(0)),
   logger_(logger)
 {
-  (void) adj_alpha_;
+  RCLCPP_INFO(logger_, "Created Serial URGCWrapper at %s:%d", serial_port_.c_str(), serial_baud_);
+}
 
-  long baudrate_or_port = (long)serial_baud_;  // NOLINT
-  const char * device = serial_port_.c_str();
-
-  int result = urg_open(&urg_, URG_SERIAL, device, baudrate_or_port);
-  if (result < 0) {
-    std::stringstream ss;
-    ss << "Could not open serial Hokuyo:\n";
-    ss << serial_port_ << " @ " << serial_baud_ << "\n";
-    ss << urg_error(&urg_);
-    stop();
-    urg_close(&urg_);
-    throw std::runtime_error(ss.str());
+bool URGCWrapper::connect()
+{
+  int result = 0;
+  if (!ip_address_.empty()) {
+    RCLCPP_INFO(logger_, "Connecting to Hokuyo at %s:%d", ip_address_.c_str(), ip_port_);
+    result = urg_open(&urg_, URG_ETHERNET, ip_address_.c_str(), ip_port_);
+  } else if (!serial_port_.empty()) {
+    RCLCPP_INFO(logger_, "Connecting to Hokuyo at %s:%d", serial_port_.c_str(), serial_baud_);
+    result = urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), serial_baud_);
+  } else {
+    RCLCPP_ERROR(logger_, "No connection information provided");
+    return false;
   }
 
-  initialize(using_intensity, using_multiecho);
+  if (result < 0) {
+    std::string error(urg_error(&urg_));
+    RCLCPP_ERROR(logger_, "Could connect to Hokuyo: %s", error.c_str());
+    return false;
+  }
+
+  initialize(use_intensity_, use_multiecho_);
+  return true;
 }
 
 void URGCWrapper::initialize(bool & using_intensity, bool & using_multiecho)
@@ -207,31 +201,38 @@ void URGCWrapper::stop()
 
 URGCWrapper::~URGCWrapper()
 {
-  // stop();
-  if (disable_linger_) {
-    // Disable SO_LINGER option
-    struct linger linger_opt;
-    linger_opt.l_onoff = 1;  // Disable SO_LINGER
-    linger_opt.l_linger = 0;  // Not used when l_onoff is 0
+  RCLCPP_INFO(logger_, "URGCWrapper destructor called.");
+  if (!ip_address_.empty()) {
+    int sock = urg_.connection.tcpclient.sock_desc;
+    if (sock != -1) {
+      if (disable_linger_) {
+        // Disable SO_LINGER option
+        struct linger linger_opt;
+        linger_opt.l_onoff = 1;  // Disable SO_LINGER
+        linger_opt.l_linger = 0;  // Not used when l_onoff is 0
 
-    if (setsockopt(
-        urg_.connection.tcpclient.sock_desc, SOL_SOCKET, SO_LINGER, &linger_opt,
-        sizeof(linger_opt)) == -1)
-    {
-      RCLCPP_ERROR(logger_, "Could not set SO_LINGER off on socket: %s", strerror(errno));
+        if (setsockopt(
+            sock, SOL_SOCKET, SO_LINGER, &linger_opt,
+            sizeof(linger_opt)) == -1)
+        {
+          RCLCPP_ERROR(logger_, "Could not set SO_LINGER off on socket: %s", strerror(errno));
+        } else {
+          RCLCPP_INFO(logger_, "Disabled SO_LINGER");
+        }
+      }
+      // TODO(richardw347): This is a bit exterme to always ensure the
+      // socket is closed on destruction. However this is necessary
+      // at the moment to ensure the sensor can alawys be restarted
+      // stop();
+      // urg_close(&urg_);
+      RCLCPP_INFO(logger_, "Closing socket.");
+      close(sock);
     } else {
-      RCLCPP_INFO(logger_, "Disabled SO_LINGER");
+      RCLCPP_INFO(logger_, "Socket already closed.");
     }
-  }
-  // TODO(richardw347): This is a bit exterme to always ensure the
-  // socket is closed on destruction. However this is necessary
-  // at the moment to ensure the sensor can alawys be restarted
-  // stop();
-  // urg_close(&urg_);
-  RCLCPP_INFO(logger_, "URGCWrapper destructor called, closing socket");
-  int sock = urg_.connection.tcpclient.sock_desc;
-  if (sock != -1) {
-    close(sock);
+  } else {
+    stop();
+    urg_close(&urg_);
   }
 }
 

@@ -433,6 +433,7 @@ bool UrgNode::connect()
           connection,
           publish_intensity_, publish_multiecho_, this->get_logger(),
           disable_linger_));
+
     } else {
       SerialConnection connection{serial_port_, serial_baud_};
       urg_.reset(
@@ -441,6 +442,10 @@ bool UrgNode::connect()
           publish_intensity_, publish_multiecho_, this->get_logger()));
     }
 
+    if (!urg_->connect()) {
+      urg_.reset();
+      return false;
+    }
     std::stringstream ss;
     ss << "Connected to";
     if (publish_multiecho_) {
@@ -484,7 +489,7 @@ bool UrgNode::connect()
 
     return true;
   } catch (const std::runtime_error & e) {
-    RCLCPP_ERROR(this->get_logger(), "Error connecting to Hokuyo: %s", e.what());
+    RCLCPP_ERROR(this->get_logger(), "Runtime error connecting to Hokuyo: %s", e.what());
     urg_.reset();
     return false;
   } catch (const std::exception & e) {
