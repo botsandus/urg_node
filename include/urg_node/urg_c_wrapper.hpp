@@ -125,6 +125,8 @@ public:
 
   ~URGCWrapper();
 
+  bool connect();
+
   void start();
 
   void stop();
@@ -261,7 +263,6 @@ private:
   double hardware_clock_;
   long last_hardware_time_stamp_;  // NOLINT
   double hardware_clock_adj_;
-  const double adj_alpha_ = .01;
   uint64_t adj_count_;
 
   /// Logger object used for debug info
