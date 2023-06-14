@@ -31,12 +31,12 @@
  * Author: Chad Rockey, Mike O'Driscoll
  */
 
+#include <urg_node/urg_c_wrapper.hpp>
 #include <chrono>
 #include <cinttypes>
 #include <limits>
 #include <memory>
 #include <string>
-#include <urg_node/urg_c_wrapper.hpp>
 #include <vector>
 
 namespace urg_node
@@ -187,7 +187,7 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)
   return true;
 }
 
-bool URGCWrapper::isStarted() const { return urg_.is_laser_on == 1; }
+bool URGCWrapper::isStarted() const {return urg_.is_laser_on == 1;}
 
 double URGCWrapper::getRangeMin() const
 {
@@ -205,9 +205,9 @@ double URGCWrapper::getRangeMax() const
   return static_cast<double>(maxr) / 1000.0;
 }
 
-double URGCWrapper::getAngleMin() const { return urg_step2rad(&urg_, first_step_); }
+double URGCWrapper::getAngleMin() const {return urg_step2rad(&urg_, first_step_);}
 
-double URGCWrapper::getAngleMax() const { return urg_step2rad(&urg_, last_step_); }
+double URGCWrapper::getAngleMax() const {return urg_step2rad(&urg_, last_step_);}
 
 double URGCWrapper::getAngleMinLimit() const
 {
@@ -248,7 +248,7 @@ double URGCWrapper::getTimeIncrement() const
   return cluster_ * circle_fraction * scan_period / static_cast<double>(max_step - min_step);
 }
 
-std::string URGCWrapper::getDeviceID() { return std::string(urg_sensor_serial_id(&urg_)); }
+std::string URGCWrapper::getDeviceID() {return std::string(urg_sensor_serial_id(&urg_));}
 
 // Must be called before urg_start
 bool URGCWrapper::setAngleLimitsAndCluster(double & angle_min, double & angle_max, int cluster)
@@ -300,6 +300,6 @@ rclcpp::Duration URGCWrapper::getAngularTimeOffset() const
   return rclcpp::Duration(std::chrono::duration<double>(circle_fraction * getScanPeriod()));
 }
 
-void URGCWrapper::setSkip(int skip) { skip_ = skip; }
+void URGCWrapper::setSkip(int skip) {skip_ = skip;}
 
 }  // namespace urg_node
