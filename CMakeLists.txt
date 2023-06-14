@@ -19,14 +19,12 @@ endif()
 
 # we currently still rely on boost for its `crc` component
 find_package(Boost REQUIRED)
-find_package(diagnostic_updater REQUIRED)
 find_package(laser_proc REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(urg_c REQUIRED)
-find_package(urg_node_msgs REQUIRED)
 
 add_library(urg_node SHARED
   src/urg_c_wrapper.cpp
@@ -38,24 +36,19 @@ target_include_directories(urg_node
   $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(urg_node
-  diagnostic_updater
   laser_proc
   rclcpp
   rclcpp_components
   sensor_msgs
   std_srvs
   urg_c
-  urg_node_msgs
   Boost
 )
 rclcpp_components_register_node(urg_node
   PLUGIN "urg_node::UrgNode"
   EXECUTABLE urg_node_driver)
 
-add_executable(getID src/get_id.cpp)
-target_link_libraries(getID urg_node)
-
-install(TARGETS urg_node getID
+install(TARGETS urg_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -63,14 +56,6 @@ install(TARGETS urg_node getID
 
 install(DIRECTORY include/
   DESTINATION include
-)
-
-install(PROGRAMS scripts/set_urg_ip.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-install(DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
@@ -81,7 +66,6 @@ endif()
 
 ament_export_dependencies(urg_node_msgs)
 ament_export_dependencies(
-  diagnostic_updater
   laser_proc
   rclcpp
   sensor_msgs

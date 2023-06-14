@@ -42,16 +42,9 @@
 #include <string>
 #include <vector>
 
-#include "diagnostic_msgs/msg/diagnostic_status.hpp"
-#include "diagnostic_updater/diagnostic_updater.hpp"
-#include "diagnostic_updater/publisher.hpp"
-#include "laser_proc/laser_publisher.hpp"
-#include "rcl_interfaces/msg/parameter.hpp"
-#include "rcl_interfaces/msg/set_parameters_result.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_srvs/srv/trigger.hpp"
 #include "urg_node/urg_c_wrapper.hpp"
-#include "urg_node_msgs/msg/status.hpp"
 
 namespace urg_node
 {
@@ -67,26 +60,8 @@ public:
    */
   void run();
 
-  /**
-   * @brief Trigger an update of the lidar's status
-   * publish the latest known information about the lidar on latched topic.
-   * @return True on update successful, false otherwise.
-   */
-  bool updateStatus();
-
-  void initSetup();
-
 private:
   bool connect();
-
-  rcl_interfaces::msg::SetParametersResult param_change_callback(
-    const std::vector<rclcpp::Parameter> parameters);
-
-  void calibrate_time_offset();
-
-  void updateDiagnostics();
-
-  void populateDiagnosticsStatus(diagnostic_updater::DiagnosticStatusWrapper & stat);
 
   void scanThread();
 
@@ -96,52 +71,16 @@ private:
     const std_srvs::srv::Trigger::Response::SharedPtr res);
 
   std::thread run_thread_;
-  std::thread diagnostics_thread_;
   std::thread scan_thread_;
 
   std::unique_ptr<urg_node::URGCWrapper> urg_;
 
-  diagnostic_updater::Updater diagnostic_updater_;
-  std::unique_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> laser_freq_;
-  std::unique_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> echoes_freq_;
-
-  std::mutex lidar_mutex_;
-
-  /*
-   * Non-const device properties.
-   * If you poll the driver for these
-   * while scanning is running, then the scan will probably fail.
-  */
-  std::string device_status_;
-  std::string vendor_name_;
-  std::string product_name_;
-  std::string firmware_version_;
-  std::string firmware_date_;
-  std::string protocol_version_;
-  std::string device_id_;
-  uint16_t error_code_;
   int error_count_;
   int error_limit_;
-  bool lockout_status_;
-  rclcpp::Duration system_latency_;
-  rclcpp::Duration user_latency_;
-  std::atomic_bool is_started_;
   double freq_min_;
-  bool close_diagnostics_;
   bool close_scan_;
-
   std::string ip_address_;
   int ip_port_;
-  std::string serial_port_;
-  int serial_baud_;
-
-  bool calibrate_time_;
-  bool synchronize_time_;
-  bool publish_intensity_;
-  bool publish_multiecho_;
-  double diagnostics_tolerance_;
-  double diagnostics_window_time_;
-  bool detailed_status_;
   double angle_min_;
   double angle_max_;
   /**
@@ -151,16 +90,9 @@ private:
   /** Reduce the rate of scans */
   int skip_;  // default : 0, range : 0 to 9
 
-  /** The default user latency value. */
-  double default_user_latency_;
-
   /** The laser tf frame id. */
   std::string laser_frame_id_;
 
-  volatile bool service_yield_;
-
-  /** how long between reading the sensor status */
-  double status_update_delay_;
   /** how long to wait to reconnect **/
   double reconn_delay_;
 
@@ -173,13 +105,9 @@ private:
   rclcpp::Time last_error_;
 
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub_;
-  std::unique_ptr<laser_proc::LaserPublisher> echoes_pub_;
-  rclcpp::Publisher<urg_node_msgs::msg::Status>::SharedPtr status_pub_;
-
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reboot_service_;
 
-  //  Need to hold reference to callback, or it gets deregistered
-  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameters_callback_handle_;
+  sensor_msgs::msg::LaserScan scan_;
 };
 }  // namespace urg_node
 
