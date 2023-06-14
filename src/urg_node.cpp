@@ -73,7 +73,9 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   laser_frame_id_("laser"),
   status_update_delay_(10.0),
   reconn_delay_(0.5),
-  disable_linger_(false)
+  disable_linger_(false),
+  error_reset_period_(3.0),
+  last_error_(0)
 {
   (void) synchronize_time_;
   initSetup();
@@ -108,6 +110,9 @@ void UrgNode::initSetup()
   status_update_delay_ = declare_parameter<double>("status_update_delay", status_update_delay_);
   reconn_delay_ = declare_parameter<double>("reconnect_delay", reconn_delay_);
   disable_linger_ = declare_parameter<bool>("disable_linger", disable_linger_);
+  error_reset_period_ = declare_parameter<double>("error_reset_period", error_reset_period_);
+
+  last_error_ = this->now();
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_) {
@@ -550,6 +555,7 @@ void UrgNode::scanThread()
             RCLCPP_WARN(this->get_logger(), "Could not grab multi echo scan.");
             device_status_ = urg_->getSensorStatus();
             error_count_++;
+            last_error_ = this->now();
           }
         } else {
           sensor_msgs::msg::LaserScan msg;
@@ -562,6 +568,8 @@ void UrgNode::scanThread()
             urg_->start();
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             error_count_++;
+            last_error_ = this->now();
+            RCLCPP_INFO(this->get_logger(), "Error count: %d", error_count_);
           }
         }
       } catch (...) {
@@ -594,6 +602,13 @@ void UrgNode::scanThread()
         urg_.reset();
         rclcpp::sleep_for(std::chrono::milliseconds(static_cast<uint64_t>(reconn_delay_ * 1000)));
         break;  // Return to top of main loop
+      }
+      else {
+        rclcpp::Duration period = this->now() - last_error_;
+        if (error_count_ > 0 && period.seconds() >= error_reset_period_) {
+          RCLCPP_INFO(this->get_logger(), "Error count reset.");
+          error_count_ = 0;
+        }
       }
     }
   }
