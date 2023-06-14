@@ -106,7 +106,7 @@ void UrgNode::rebootCallback(
   (void)request_header;
   (void)req;
   reboot_triggered_ = true;
-  res.success = true;
+  res->success = true;
 }
 
 bool UrgNode::connect()
