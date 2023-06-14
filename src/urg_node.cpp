@@ -74,7 +74,9 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   service_yield_(true),
   status_update_delay_(10.0),
   reconn_delay_(0.5),
-  disable_linger_(false)
+  disable_linger_(false),
+  error_reset_period_(3.0),
+  last_error_(0)
 {
   (void) synchronize_time_;
   initSetup();
@@ -109,6 +111,7 @@ void UrgNode::initSetup()
   status_update_delay_ = declare_parameter<double>("status_update_delay", status_update_delay_);
   reconn_delay_ = declare_parameter<double>("reconnect_delay", reconn_delay_);
   disable_linger_ = declare_parameter<bool>("disable_linger", disable_linger_);
+  error_reset_period_ = declare_parameter<double>("error_reset_period", error_reset_period_);
 
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_) {
@@ -558,24 +561,24 @@ void UrgNode::scanThread()
           if (urg_->grabScan(msg)) {
             echoes_pub_->publish(msg);
             echoes_freq_->tick();
-            error_count_ = 0;
           } else {
             RCLCPP_WARN(this->get_logger(), "Could not grab multi echo scan.");
             device_status_ = urg_->getSensorStatus();
             error_count_++;
+            last_error_ = this->now();
           }
         } else {
           sensor_msgs::msg::LaserScan msg;
           if (urg_->grabScan(msg)) {
             laser_pub_->publish(msg);
             laser_freq_->tick();
-            error_count_ = 0;
           } else {
             device_status_ = urg_->getSensorStatus();
             RCLCPP_INFO(this->get_logger(), "Stream stopped due to error, restarting");
             urg_->start();
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             error_count_++;
+            last_error_ = this->now();
           }
         }
       } catch (...) {
@@ -601,6 +604,13 @@ void UrgNode::scanThread()
         urg_.reset();
         rclcpp::sleep_for(std::chrono::milliseconds(static_cast<uint64_t>(reconn_delay_ * 1000)));
         break;  // Return to top of main loop
+      }
+      else
+      {
+        rclcpp::Duration period = this->now() - last_error_;
+        if (period.seconds() >= error_reset_period_) {
+          error_count_ = 0;
+        }
       }
     }
   }
