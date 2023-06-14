@@ -273,18 +273,8 @@ bool URGCWrapper::grabScan(sensor_msgs::msg::LaserScan & msg)
   }
   if (num_beams <= 0) {
     std::string error(urg_error(&urg_));
-    RCLCPP_WARN(logger_, "Error grabbing scan: %s laser is off", error.c_str());
-    if (!urg_.is_laser_on)
-    {
-      RCLCPP_WARN(logger_, "Laser is off, restarting.");
-      int ret = urg_laser_on(&urg_);
-      if (ret != 0) {
-        RCLCPP_ERROR(logger_, "Could not restart laser: %s", urg_error(&urg_));
-      }
-      else {
-        RCLCPP_INFO(logger_, "Laser restarted.");
-      }
-    }
+    RCLCPP_WARN(logger_, "Error grabbing scan: %s streaming data stopped", error.c_str());
+    started_ = false;
     return false;
   }
 

@@ -576,7 +576,7 @@ void UrgNode::scanThread()
             device_status_ = urg_->getSensorStatus();
             RCLCPP_INFO(this->get_logger(), "Stream stopped due to error, restarting");
             urg_->start();
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             error_count_++;
           }
         }
