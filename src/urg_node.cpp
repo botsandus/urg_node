@@ -71,7 +71,6 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   skip_(0),
   default_user_latency_(0.0),
   laser_frame_id_("laser"),
-  service_yield_(true),
   status_update_delay_(10.0),
   reconn_delay_(0.5),
   disable_linger_(false)
@@ -205,22 +204,7 @@ void UrgNode::rebootCallback(
 {
   (void) request_header;
   (void) req;
-  service_yield_ = true;
-  std::unique_lock<std::mutex> lock(lidar_mutex_);
-  if(urg_)
-  {
-    if (urg_->reboot())
-    {
-      reboot_triggered_ = true;
-      RCLCPP_INFO(this->get_logger(), "Rebooting Hokuyo....");
-      res->success = true;
-    }
-    else
-    {
-      RCLCPP_ERROR(this->get_logger(), "Failed to reboot Hokuyo.");
-      res->success = false;
-    }
-  }
+  reboot_triggered_ = true;
 }
 
 rcl_interfaces::msg::SetParametersResult UrgNode::param_change_callback(
@@ -552,7 +536,7 @@ void UrgNode::scanThread()
     }
     rclcpp::Time last_status_update = this->now();
 
-    while (!close_scan_ && !reboot_triggered_) {
+    while (!close_scan_) {
       // Don't allow external access during grabbing the scan.
       try {
         std::unique_lock<std::mutex> lock(lidar_mutex_);
@@ -592,9 +576,18 @@ void UrgNode::scanThread()
         last_status_update = this->now();
       }
 
-      if (service_yield_) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        service_yield_ = false;
+      if (reboot_triggered_) {
+        reboot_triggered_ = false;
+        if (urg_->reboot()) {
+          RCLCPP_INFO(this->get_logger(), "Rebooting Hokuyo....");
+          urg_.reset();
+          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+          break;  // Return to top of main loop
+        }
+        else
+        {
+          RCLCPP_ERROR(this->get_logger(), "Failed to reboot Hokuyo.");
+        }
       }
 
       // Reestablish connection if things seem to have gone wrong.
