@@ -113,6 +113,8 @@ void UrgNode::initSetup()
   disable_linger_ = declare_parameter<bool>("disable_linger", disable_linger_);
   error_reset_period_ = declare_parameter<double>("error_reset_period", error_reset_period_);
 
+  last_error_ = this->now();
+
   // Set up publishers and diagnostics updaters, we only need one
   if (publish_multiecho_) {
     echoes_pub_ =
@@ -579,6 +581,7 @@ void UrgNode::scanThread()
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             error_count_++;
             last_error_ = this->now();
+            RCLCPP_INFO(this->get_logger(), "Error count: %d", error_count_);
           }
         }
       } catch (...) {
@@ -605,10 +608,9 @@ void UrgNode::scanThread()
         rclcpp::sleep_for(std::chrono::milliseconds(static_cast<uint64_t>(reconn_delay_ * 1000)));
         break;  // Return to top of main loop
       }
-      else
-      {
+      else {
         rclcpp::Duration period = this->now() - last_error_;
-        if (period.seconds() >= error_reset_period_) {
+        if (error_count_ > 0 && period.seconds() >= error_reset_period_) {
           RCLCPP_INFO(this->get_logger(), "Error count reset.");
           error_count_ = 0;
         }
