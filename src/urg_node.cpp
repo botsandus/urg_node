@@ -165,7 +165,6 @@ void UrgNode::scanThread()
       continue;
     }
 
-    // Start the urgwidget
     try {
       // If the connection failed, don't try and connect
       // pointer is invalid.
