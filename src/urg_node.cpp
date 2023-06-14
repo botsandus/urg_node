@@ -583,9 +583,7 @@ void UrgNode::scanThread()
           urg_.reset();
           std::this_thread::sleep_for(std::chrono::milliseconds(1000));
           break;  // Return to top of main loop
-        }
-        else
-        {
+        } else {
           RCLCPP_ERROR(this->get_logger(), "Failed to reboot Hokuyo.");
         }
       }

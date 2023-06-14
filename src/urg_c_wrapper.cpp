@@ -238,8 +238,7 @@ URGCWrapper::~URGCWrapper()
 
 bool URGCWrapper::reboot()
 {
-  if(urg_reboot(&urg_) != 0 )
-  {
+  if (urg_reboot(&urg_) != 0) {
     RCLCPP_ERROR(logger_, "Could not reboot Hokuyo: %s", urg_error(&urg_));
     return false;
   }
