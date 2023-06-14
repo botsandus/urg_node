@@ -118,10 +118,11 @@ void UrgNode::initSetup()
     laser_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", 20);
   }
 
-  status_service_ = this->create_service<std_srvs::srv::Trigger>(
-    "update_laser_status",
+  reboot_triggered_ = false;
+  reboot_service_ = this->create_service<std_srvs::srv::Trigger>(
+    std::string(get_name()) + "/reboot_lidar",
     std::bind(
-      &UrgNode::statusCallback, this,
+      &UrgNode::rebootCallback, this,
       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
   // TODO(karsten1987): ros2 does not have latched topics yet, need to play with QoS
@@ -157,7 +158,6 @@ UrgNode::~UrgNode()
 bool UrgNode::updateStatus()
 {
   bool result = false;
-  service_yield_ = true;
   std::unique_lock<std::mutex> lock(lidar_mutex_);
 
   if (urg_) {
@@ -198,24 +198,28 @@ bool UrgNode::updateStatus()
   return result;
 }
 
-void UrgNode::statusCallback(
+void UrgNode::rebootCallback(
   const std::shared_ptr<rmw_request_id_t> request_header,
   const std_srvs::srv::Trigger::Request::SharedPtr req,
   const std_srvs::srv::Trigger::Response::SharedPtr res)
 {
   (void) request_header;
   (void) req;
-
-  RCLCPP_INFO(this->get_logger(), "Got update lidar status callback");
-  res->success = false;
-  res->message = "Laser not ready";
-
-  if (updateStatus()) {
-    res->message = "Status retrieved";
-    res->success = true;
-  } else {
-    res->message = "Failed to update status";
-    res->success = false;
+  service_yield_ = true;
+  std::unique_lock<std::mutex> lock(lidar_mutex_);
+  if(urg_)
+  {
+    if (urg_->reboot())
+    {
+      reboot_triggered_ = true;
+      RCLCPP_INFO(this->get_logger(), "Rebooting Hokuyo....");
+      res->success = true;
+    }
+    else
+    {
+      RCLCPP_ERROR(this->get_logger(), "Failed to reboot Hokuyo.");
+      res->success = false;
+    }
   }
 }
 
@@ -548,7 +552,7 @@ void UrgNode::scanThread()
     }
     rclcpp::Time last_status_update = this->now();
 
-    while (!close_scan_) {
+    while (!close_scan_ && !reboot_triggered_) {
       // Don't allow external access during grabbing the scan.
       try {
         std::unique_lock<std::mutex> lock(lidar_mutex_);
@@ -572,7 +576,7 @@ void UrgNode::scanThread()
             device_status_ = urg_->getSensorStatus();
             RCLCPP_INFO(this->get_logger(), "Stream stopped due to error, restarting");
             urg_->start();
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
             error_count_++;
           }
         }

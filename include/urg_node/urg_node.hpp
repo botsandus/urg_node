@@ -90,7 +90,7 @@ private:
 
   void scanThread();
 
-  void statusCallback(
+  void rebootCallback(
     const std::shared_ptr<rmw_request_id_t> requestHeader,
     const std_srvs::srv::Trigger::Request::SharedPtr req,
     const std_srvs::srv::Trigger::Response::SharedPtr res);
@@ -166,11 +166,13 @@ private:
 
   bool disable_linger_;
 
+  bool reboot_triggered_;
+
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub_;
   std::unique_ptr<laser_proc::LaserPublisher> echoes_pub_;
   rclcpp::Publisher<urg_node_msgs::msg::Status>::SharedPtr status_pub_;
 
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr status_service_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reboot_service_;
 
   //  Need to hold reference to callback, or it gets deregistered
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameters_callback_handle_;

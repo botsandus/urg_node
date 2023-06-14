@@ -131,6 +131,8 @@ public:
 
   void stop();
 
+  bool reboot();
+
   bool isStarted() const;
 
   double getRangeMin() const;
