@@ -609,6 +609,7 @@ void UrgNode::scanThread()
       {
         rclcpp::Duration period = this->now() - last_error_;
         if (period.seconds() >= error_reset_period_) {
+          RCLCPP_INFO(this->get_logger(), "Error count reset.");
           error_count_ = 0;
         }
       }
