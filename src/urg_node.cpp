@@ -75,6 +75,7 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   status_update_delay_(10.0),
   reconn_delay_(0.5),
   disable_linger_(false),
+  ignore_checksum_(false),
   error_reset_period_(3.0),
   last_error_(0)
 {
@@ -111,8 +112,8 @@ void UrgNode::initSetup()
   status_update_delay_ = declare_parameter<double>("status_update_delay", status_update_delay_);
   reconn_delay_ = declare_parameter<double>("reconnect_delay", reconn_delay_);
   disable_linger_ = declare_parameter<bool>("disable_linger", disable_linger_);
+  ignore_checksum_ = declare_parameter<bool>("ignore_checksum", ignore_checksum_);
   error_reset_period_ = declare_parameter<double>("error_reset_period", error_reset_period_);
-
   last_error_ = this->now();
 
   // Set up publishers and diagnostics updaters, we only need one
@@ -437,7 +438,7 @@ bool UrgNode::connect()
         new urg_node::URGCWrapper(
           connection,
           publish_intensity_, publish_multiecho_, this->get_logger(),
-          disable_linger_));
+          disable_linger_, ignore_checksum_));
 
     } else {
       SerialConnection connection{serial_port_, serial_baud_};
