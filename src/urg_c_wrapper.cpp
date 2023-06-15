@@ -62,7 +62,7 @@ URGCWrapper::URGCWrapper(
   ignore_checksum_(ignore_checksum)
 {
   RCLCPP_INFO(logger_, "Created Ethernet URGCWrapper at %s:%d", ip_address_.c_str(), ip_port_);
-  if (disable_checksum_) {
+  if (ignore_checksum_) {
     RCLCPP_INFO(logger_, "Checksums disabled");
   } else {
     RCLCPP_INFO(logger_, "Checksums enabled");
