@@ -75,12 +75,9 @@ UrgNode::UrgNode(const rclcpp::NodeOptions & node_options)
   status_update_delay_(10.0),
   reconn_delay_(0.5),
   disable_linger_(false),
-<<<<<<< HEAD
   ignore_checksum_(false)
-=======
   error_reset_period_(3.0),
   last_error_(0)
->>>>>>> origin/AUTO-952
 {
   (void) synchronize_time_;
   initSetup();
