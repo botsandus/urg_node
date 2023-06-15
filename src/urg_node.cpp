@@ -609,8 +609,7 @@ void UrgNode::scanThread()
         urg_.reset();
         rclcpp::sleep_for(std::chrono::milliseconds(static_cast<uint64_t>(reconn_delay_ * 1000)));
         break;  // Return to top of main loop
-      }
-      else {
+      } else {
         rclcpp::Duration period = this->now() - last_error_;
         if (error_count_ > 0 && period.seconds() >= error_reset_period_) {
           RCLCPP_INFO(this->get_logger(), "Error count reset.");
