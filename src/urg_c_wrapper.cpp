@@ -48,7 +48,7 @@ namespace urg_node
 URGCWrapper::URGCWrapper(
   const EthernetConnection & connection, bool & using_intensity,
   bool & using_multiecho, const rclcpp::Logger & logger,
-  bool disable_linger)
+  bool disable_linger, bool ignore_checksum)
 : ip_address_(connection.ip_address),
   ip_port_(connection.ip_port),
   serial_port_(""),
@@ -58,7 +58,8 @@ URGCWrapper::URGCWrapper(
   system_latency_(std::chrono::seconds(0)),
   user_latency_(std::chrono::seconds(0)),
   logger_(logger),
-  disable_linger_(disable_linger)
+  disable_linger_(disable_linger),
+  ignore_checksum_(ignore_checksum)
 {
   RCLCPP_INFO(logger_, "Created Ethernet URGCWrapper at %s:%d", ip_address_.c_str(), ip_port_);
 }
@@ -84,10 +85,10 @@ bool URGCWrapper::connect()
   int result = 0;
   if (!ip_address_.empty()) {
     RCLCPP_INFO(logger_, "Connecting to Hokuyo at %s:%d", ip_address_.c_str(), ip_port_);
-    result = urg_open(&urg_, URG_ETHERNET, ip_address_.c_str(), ip_port_);
+    result = urg_open(&urg_, URG_ETHERNET, ip_address_.c_str(), ip_port_, ignore_checksum_);
   } else if (!serial_port_.empty()) {
     RCLCPP_INFO(logger_, "Connecting to Hokuyo at %s:%d", serial_port_.c_str(), serial_baud_);
-    result = urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), serial_baud_);
+    result = urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), serial_baud_, false);
   } else {
     RCLCPP_ERROR(logger_, "No connection information provided");
     return false;
@@ -585,7 +586,7 @@ bool URGCWrapper::setToSCIP2()
 
   // Check if switching was successful.
   if (n > 0 && strcmp(buffer, "SCIP2.0") == 0 &&
-    urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_) >= 0)  // NOLINT
+    urg_open(&urg_, URG_SERIAL, serial_port_.c_str(), (long)serial_baud_, false) >= 0)  // NOLINT
   {
     RCLCPP_DEBUG(logger_, "Set sensor to SCIP 2.0.");
     return true;

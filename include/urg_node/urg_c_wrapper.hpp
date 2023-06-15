@@ -117,7 +117,7 @@ public:
     const EthernetConnection & connection,
     bool & using_intensity, bool & using_multiecho,
     const rclcpp::Logger & logger = rclcpp::get_logger("urg_c_wrapper"),
-    bool disable_linger = false);
+    bool disable_linger = false, bool ignore_checksum = false);
 
   URGCWrapper(
     const SerialConnection & connection, bool & using_intensity, bool & using_multiecho,
@@ -268,6 +268,7 @@ private:
   /// Logger object used for debug info
   rclcpp::Logger logger_;
   bool disable_linger_;
+  bool ignore_checksum_;
 };
 }  // namespace urg_node
 
