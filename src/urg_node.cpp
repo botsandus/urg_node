@@ -467,6 +467,7 @@ bool UrgNode::connect()
       ss << " intensity and";
     }
     ss << " ID: " << urg_->getDeviceID();
+    ss << " Firmware: " << urg_->getFirmwareVersion();
     RCLCPP_INFO(this->get_logger(), "%s", ss.str().c_str());
 
     device_status_ = urg_->getSensorStatus();
