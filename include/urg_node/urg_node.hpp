@@ -167,6 +167,8 @@ private:
   bool disable_linger_;
 
   bool ignore_checksum_;
+  double error_reset_period_;
+  rclcpp::Time last_error_;
 
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_pub_;
   std::unique_ptr<laser_proc::LaserPublisher> echoes_pub_;
